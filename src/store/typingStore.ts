@@ -25,6 +25,8 @@ interface TypingState {
   consistency: number;
   totalTime: number;
   startTime: number | null;
+  wpmHistory: number[]; // ADD THIS
+  errorStats: Record<string, number>; // ADD THIS
   
   // History
   history: Array<{
@@ -53,6 +55,8 @@ interface TypingState {
   setAccuracy: (accuracy: number) => void;
   setConsistency: (consistency: number) => void;
   setStartTime: (time: number | null) => void;
+  setWpmHistory: (history: number[]) => void; // ADD THIS
+  setErrorStats: (stats: Record<string, number>) => void; // ADD THIS
   addToHistory: (entry: TypingState['history'][0]) => void;
   setPersonalBest: (best: number) => void;
   reset: () => void;
@@ -77,6 +81,8 @@ const initialState = {
   consistency: 100,
   totalTime: 0,
   startTime: null,
+  wpmHistory: [], // ADD THIS
+  errorStats: {}, // ADD THIS
   history: [],
   personalBest: 0,
 };
@@ -103,6 +109,8 @@ export const useTypingStore = create<TypingState>()(
       setAccuracy: (accuracy) => set({ accuracy }),
       setConsistency: (consistency) => set({ consistency }),
       setStartTime: (startTime) => set({ startTime }),
+      setWpmHistory: (wpmHistory) => set({ wpmHistory }), // ADD THIS
+      setErrorStats: (errorStats) => set({ errorStats }), // ADD THIS
       
       addToHistory: (entry) => 
         set((state) => ({ 
@@ -123,6 +131,8 @@ export const useTypingStore = create<TypingState>()(
         selectedLanguage: get().selectedLanguage,
         history: get().history,
         personalBest: get().personalBest,
+        wpmHistory: [], // Reset wpmHistory on reset
+        errorStats: {}, // Reset errorStats on reset
       }),
     }),
     {
@@ -130,6 +140,8 @@ export const useTypingStore = create<TypingState>()(
       partialize: (state) => ({
         history: state.history,
         personalBest: state.personalBest,
+        errorStats: state.errorStats,
+        wpmHistory: state.wpmHistory,
       }),
     }
   )

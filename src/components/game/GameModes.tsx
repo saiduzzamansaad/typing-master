@@ -1,13 +1,16 @@
 import React from 'react';
-import { Clock, Hash, Code, Zen } from 'lucide-react';
+import { Clock, Hash, Code, Smile } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTypingStore } from '../../store';
+import { generateText } from '../../utils/textGenerator';
+
+
 
 const MODES = [
   { id: 'time', label: 'Time Mode', icon: Clock, durations: [15, 30, 60, 120] },
   { id: 'words', label: 'Word Count', icon: Hash, counts: [10, 25, 50, 100] },
   { id: 'developer', label: 'Developer Mode', icon: Code, languages: ['javascript', 'python', 'typescript', 'html'] },
-  { id: 'zen', label: 'Zen Mode', icon: Zen },
+  { id: 'zen', label: 'Zen Mode', icon: Smile },
 ] as const;
 
 export const GameModes: React.FC = () => {
@@ -29,6 +32,8 @@ export const GameModes: React.FC = () => {
     setGameMode(newMode);
     reset();
   };
+
+  
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">

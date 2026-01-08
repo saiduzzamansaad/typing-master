@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useTypingStore, useSettingsStore } from '../../store';
 import { useSound } from '../../hooks/useSound';
 import { generateText } from '../../utils/textGenerator';
@@ -32,13 +32,65 @@ export const InputHandler: React.FC = () => {
 
   const { soundEnabled, volume, backspaceControl } = useSettingsStore();
   const { playKeySound } = useSound();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Prevent spacebar from scrolling the page
+  useEffect(() => {
+    const preventSpaceScroll = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        if (e.target === document.body || e.target === document.documentElement) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    // Also prevent default space behavior on the hidden input
+    const handleInputKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        // Manually add space to input
+        if (inputRef.current) {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            'value'
+          )?.set;
+          
+          if (nativeInputValueSetter) {
+            nativeInputValueSetter.call(inputRef.current, userInput + ' ');
+            
+            const inputEvent = new Event('input', { bubbles: true });
+            inputRef.current.dispatchEvent(inputEvent);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', preventSpaceScroll, { passive: false });
+    
+    if (inputRef.current) {
+      inputRef.current.addEventListener('keydown', handleInputKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', preventSpaceScroll);
+      if (inputRef.current) {
+        inputRef.current.removeEventListener('keydown', handleInputKeyDown);
+      }
+    };
+  }, [userInput]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isFinished) return;
 
     const key = e.key;
 
+    // Prevent default space behavior
+    if (key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+    }
+
     if (key === 'Escape') {
+      e.preventDefault();
       reset();
       return;
     }
@@ -51,7 +103,7 @@ export const InputHandler: React.FC = () => {
       return;
     }
 
-    if (!isTyping && key.length === 1) {
+    if (!isTyping && key.length === 1 && key !== ' ') {
       setIsTyping(true);
       setStartTime(Date.now());
     }
@@ -76,7 +128,7 @@ export const InputHandler: React.FC = () => {
       return;
     }
 
-    if (key.length === 1) {
+    if (key.length === 1 || key === ' ') {
       const isCorrect = key === currentChar;
       
       if (isCorrect) {
@@ -93,7 +145,7 @@ export const InputHandler: React.FC = () => {
 
       // Check if test is complete
       if (gameMode === 'words') {
-        const wordCount = newInput.split(' ').length;
+        const wordCount = newInput.split(/\s+/).filter(w => w.length > 0).length;
         if (wordCount >= wordLimit) {
           setIsFinished(true);
           setShowResults(true);
@@ -170,10 +222,19 @@ export const InputHandler: React.FC = () => {
 
   return (
     <input
+      ref={inputRef}
       type="text"
       className="fixed opacity-0 pointer-events-none"
       aria-hidden="true"
       tabIndex={-1}
+      value={userInput}
+      onChange={() => {}} // React requires onChange
+      onKeyDown={(e) => {
+        // Prevent space from scrolling in React handler too
+        if (e.key === ' ') {
+          e.preventDefault();
+        }
+      }}
     />
   );
 };

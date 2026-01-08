@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Cursor } from './Cursor';
 import { useTypingStore, useSettingsStore } from '../../store';
 import { calculateStats } from '../../utils/calculations';
+import { generateText } from '../../utils/textGenerator';
 
 export const TextDisplay: React.FC = () => {
   const {
@@ -11,6 +12,11 @@ export const TextDisplay: React.FC = () => {
     currentIndex,
     isTyping,
     gameMode,
+    timeLimit,
+    wordLimit,
+    selectedLanguage,
+    setText,
+    showResults,
   } = useTypingStore();
   
   const { wordWrap } = useSettingsStore();
@@ -18,6 +24,14 @@ export const TextDisplay: React.FC = () => {
   const { correctChars, errorChars } = useMemo(() => {
     return calculateStats(text, userInput);
   }, [text, userInput]);
+
+  // Generate new text when component mounts
+  useEffect(() => {
+    if (!text || text.trim().length === 0) {
+      const newText = generateText(gameMode, wordLimit, selectedLanguage);
+      setText(newText);
+    }
+  }, []);
 
   const renderCharacter = (char: string, index: number) => {
     if (index >= userInput.length) {
@@ -53,29 +67,59 @@ export const TextDisplay: React.FC = () => {
     return text.match(/.{1,80}/g) || [text];
   }, [text, wordWrap]);
 
+  // If no text, show loading state
+  if (!text || text.trim().length === 0) {
+    return (
+      <div className="text-center py-12">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mb-4"
+        />
+        <div className="text-gray-400">Generating practice text...</div>
+        <div className="text-sm text-gray-600 mt-2">
+          This will only take a moment
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
-      <div
-        className={`text-2xl leading-relaxed font-mono select-none ${
-          wordWrap ? 'whitespace-pre-wrap' : 'whitespace-pre overflow-x-auto'
-        }`}
-      >
-        {lines.map((line, lineIndex) => (
-          <div key={lineIndex} className="mb-4">
-            {line.split('').map((char, charIndex) => {
-              const absoluteIndex = lineIndex * 80 + charIndex;
-              return renderCharacter(char, absoluteIndex);
-            })}
+      {showResults ? (
+        <div className="text-center py-8">
+          <div className="text-2xl font-bold text-green-500 mb-4">
+            🎉 Test Complete!
           </div>
-        ))}
-      </div>
-      
-      {isTyping && (
-        <Cursor
-          currentIndex={currentIndex}
-          text={text}
-          wordWrap={wordWrap}
-        />
+          <div className="text-gray-400">
+            Press "Try Again" to start a new test
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            className={`text-2xl leading-relaxed font-mono select-none ${
+              wordWrap ? 'whitespace-pre-wrap' : 'whitespace-pre overflow-x-auto'
+            }`}
+          >
+            {lines.map((line, lineIndex) => (
+              <div key={lineIndex} className="mb-4">
+                {line.split('').map((char, charIndex) => {
+                  const absoluteIndex = lineIndex * 80 + charIndex;
+                  return renderCharacter(char, absoluteIndex);
+                })}
+              </div>
+            ))}
+          </div>
+          
+          {isTyping && (
+            <Cursor
+              currentIndex={currentIndex}
+              text={text}
+              wordWrap={wordWrap}
+            />
+          )}
+        </>
       )}
       
       <div className="mt-6 flex justify-between text-sm text-gray-400">
